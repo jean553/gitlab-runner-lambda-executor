@@ -24,7 +24,7 @@ def __main__(event, lambda_context):
 
     # TODO: handle SSH keys configuration for Git clone
 
-    git.Git("/tmp").clone("https://YOUR_GITLAB_URL/YOUR_REPO.git")
+    git.Git("/tmp").clone("https://oauth2:YOUR_ACCESS_TOKEN@YOUR_GITLAB_URL/YOUR_REPO.git")
     os.chdir("/tmp/YOUR_REPO")
 
     for command in event:
