@@ -5,7 +5,6 @@
 An attempt to create a Gitlab CI executor running builds into AWS lambda.
 
 ## TODO
- * handle Git through SSH into the Lambda,
  * find a way to get the `gitlab-ci.yml` commands from the Gitlab custom executor script (they are passed... this way `/builds/root/test"\necho $\'\\x1b[32;1m$ echo "Hello world"\\x1b[0;m\'\necho "Hello world"\necho $\'\\x1b[32;1m$ black .\\x1b[0;m\'\nblack .\n'`... so need to find a way to use that)
 
 ## Lambda configuration
@@ -22,9 +21,7 @@ import subprocess
 
 def __main__(event, lambda_context):
 
-    # TODO: handle SSH keys configuration for Git clone
-
-    git.Git("/tmp").clone("https://oauth2:YOUR_ACCESS_TOKEN@YOUR_GITLAB_URL/YOUR_REPO.git")
+    git.Git("/tmp").clone("https://oauth2:" + os.environ["ACCESS_TOKEN"] + "@YOUR_GITLAB_URL/YOUR_REPO.git")
     os.chdir("/tmp/YOUR_REPO")
 
     for command in event:
@@ -50,6 +47,12 @@ Create a ZIP archive and upload it to the Lambda.
 zip -r9 lambda.zip YOUR_VIRTUAL_ENV/lib/python3.7/site-packages/* && 
 zip -g lambda.zip main.py
 ```
+
+### Environment variables
+
+Set the environment variable `ACCESS_TOKEN` for your lambda.
+
+This token can be generated for one of your Gitlab user.
 
 ## Gitlab runner configuration
 
