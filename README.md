@@ -1,126 +1,115 @@
-# gitlab-lambda-executor
+# gitlab-runner-lambda-executor
 
-**IMPORTANT: This is a Work In Progress.**
+![Image 1](screenshots/screenshot.png)
 
-An attempt to create a Gitlab CI executor running builds into AWS lambda.
+This project contains explanation and code snippets to use AWS lambda function as a custom Gitlab runner executor.
 
 ## Lambda configuration
 
-### Code
+The following documentation has been tested with **Python version 3.7** for both the local environment and the Lambda function.
 
-Create a new Python virtualenv with your Lambda code:
+The commands have to be executed into your own copy of this project.
 
-```python
-import os
-import stat
-import git
-import sys
-import json
-import subprocess
-import stat
+### Requirements
 
-from git import Repo
-
-
-def __main__(event, lambda_context):
-
-    os.mkdir("/tmp/builds")
-    os.mkdir("/tmp/cache")
-
-    print("Cloning the project")
-    Repo.clone_from(
-        "https://oauth2:"
-        + os.environ["ACCESS_TOKEN"]
-        + "@YOUR_GITLAB_URL.git",
-        "/tmp/builds/root/test",
-    )
-
-    script = open("/tmp/script.sh", "w")
-    script.write(event)
-    script.close()
-
-    st = os.stat("/tmp/script.sh")
-    os.chmod("/tmp/script.sh", st.st_mode | stat.S_IEXEC)
-
-    proc = subprocess.Popen(
-        "/tmp/script.sh", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    output = proc.stdout.read()
-    error = proc.stderr.read()
-
-    return output + error
-```
-
-### Dependencies
-
-(into your script virtualenv)
-
-```shell
-pip3 install gitpython black 
-```
-
-### Archive
-
-Ensure `black` can be accessed from your archive root directory.
+Install `virtualenv`:
 
 ```sh
-cp YOUR_VIRTUAL_ENV/bin/black .
+pip3 install virtualenv
 ```
 
-Create a ZIP archive and upload it to the Lambda.
+### Lambda configuration
+
+Create a new Python3.7 lambda function from the AWS console.
+
+Choose the option of creating a new role for your function from policy templates.
+
+In order to use Git, add a [Git layer](https://github.com/lambci/git-lambda-layer) to your lambda.
+
+Set the following environment variables for the lambda function:
+ * `GITLAB_REPOSITORY_URL` with your Gitlab repository URL (for instance: `gitlab.your-domain.com/user/project.git`),
+ * `ACCESS_TOKEN` with your Gitlab access token (**Access token** into Gitlab user settings),
+ * `GIT_PYTHON_REFRESH` to `quiet`,
+ * `GIT_SSL_NO_VERIFY` to `true`
+
+Set the lambda main handler as **main.__main__**.
+
+### Make the Python virtual environment
+
+Create a local virtual env to store all your Lambda dependencies.
 
 ```sh
-zip -r9 lambda.zip YOUR_VIRTUAL_ENV/lib/python3.7/site-packages/* && 
-zip -g lambda.zip main.py &&
-zip -g lambda.zip black
+virtualenv venv
 ```
 
-### Environment variables
+Enable it.
 
-Set the environment variable `ACCESS_TOKEN` for your lambda.
+```sh
+source venv/bin/activate
+```
 
-This token can be generated for one of your Gitlab user.
+### Install the lambda dependencies
+
+The `requirements.txt` file contains required dependencies for the Lambda to run.
+
+Append your own dependencies into that file.
+
+Install them into your local virtual env with:
+
+```sh
+pip3 install -r requirements.txt
+```
+
+### Archive the lambda
+
+Create an archive of the lambda:
+
+```sh
+cd venv/lib/python3.7/site-packages && \
+    zip -r9 ../../../../lambda.zip . && \
+    cd ../../../../ && \
+    zip -g lambda.zip main.py
+```
+
+Upload your lambda code as a ZIP file on the AWS console.
 
 ## Gitlab runner configuration
 
-### Runner execution script
+The following commands have to be executed on your Gitlab runner instance.
 
-(ensure `awscli` is callable by configuring $PATH and your IAM user has enough privileges to run serverless functions)
+### Setup the executor
 
-```python
-import os
-import sys
-import boto3
-import json
-import base64
+Upload `executor.py` and `executor.sh` to your Gitlab runner instance.
 
-with open(sys.argv[1]) as file:
-    command = file.read()
+Into `executor.py`, replace `LAMBDA_ARN` by your own lambda ARN.
 
-payload = json.dumps(command)
+Ensure **Python3+** is installed.
 
-client = boto3.client('lambda')
-response = client.invoke(
-    FunctionName='LAMBDA_ARN',
-    Payload=payload,
-    LogType='Tail'
-)
+Ensure `boto3` is installed:
 
-result = response['Payload'].read().decode('utf-8')
-print(result)
+```sh
+pip3 install boto3
 ```
 
-### Start runner command
+Ensure AWS credentials are set correctly into `~/.aws/credentials`:
 
-Start your Gitlab runner with the following command:
+```sh
+[default]
+aws_access_key_id = YOUR_ACCESS_KEY
+aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
+```
+
+The user must have IAM privileges to invoke your Lambda function.
+
+### Register the Gitlab runner
 
 ```sh
 sudo gitlab-runner register \
     --non-interactive \
-    --url https://gitlab.your-domain.com/ \
-    --registration-token YOUR_TOKEN \
+    --url YOUR_GITLAB_URL \
+    --registration-token GITLAB_RUNNER_REGISTRATION_TOKEN \
     --executor custom \
-    --custom-run-exec=/home/ubuntu/executors/run-script.py \
+    --custom-run-exec=executor.sh \
     --builds-dir=/tmp/builds \
     --cache-dir=/tmp/cache
 ```
