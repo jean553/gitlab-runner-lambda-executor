@@ -101,7 +101,7 @@ payload = json.dumps(command)
 
 client = boto3.client('lambda')
 response = client.invoke(
-    FunctionName='arn:aws:lambda:eu-west-3:538175400773:function:test',
+    FunctionName='LAMBDA_ARN',
     Payload=payload,
     LogType='Tail'
 )
