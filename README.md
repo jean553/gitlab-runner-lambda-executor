@@ -4,9 +4,6 @@
 
 An attempt to create a Gitlab CI executor running builds into AWS lambda.
 
-## TODO
- * find a way to get the `gitlab-ci.yml` commands from the Gitlab custom executor script (they are passed... this way `/builds/root/test"\necho $\'\\x1b[32;1m$ echo "Hello world"\\x1b[0;m\'\necho "Hello world"\necho $\'\\x1b[32;1m$ black .\\x1b[0;m\'\nblack .\n'`... so need to find a way to use that)
-
 ## Lambda configuration
 
 ### Code
@@ -15,20 +12,43 @@ Create a new Python virtualenv with your Lambda code:
 
 ```python
 import os
+import stat
 import git
+import sys
 import json
 import subprocess
+import stat
+
+from git import Repo
+
 
 def __main__(event, lambda_context):
 
-    git.Git("/tmp").clone("https://oauth2:" + os.environ["ACCESS_TOKEN"] + "@YOUR_GITLAB_URL/YOUR_REPO.git")
-    os.chdir("/tmp/YOUR_REPO")
+    os.mkdir("/tmp/builds")
+    os.mkdir("/tmp/cache")
 
-    for command in event:
-        #XXX: shell=True for POC only, split your commands for safe interpretation :)
-        subprocess.call(command, shell=True)
+    print("Cloning the project")
+    Repo.clone_from(
+        "https://oauth2:"
+        + os.environ["ACCESS_TOKEN"]
+        + "@YOUR_GITLAB_URL.git",
+        "/tmp/builds/root/test",
+    )
 
-    rmtree("/tmp/YOUR_REPO")
+    script = open("/tmp/script.sh", "w")
+    script.write(event)
+    script.close()
+
+    st = os.stat("/tmp/script.sh")
+    os.chmod("/tmp/script.sh", st.st_mode | stat.S_IEXEC)
+
+    proc = subprocess.Popen(
+        "/tmp/script.sh", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    output = proc.stdout.read()
+    error = proc.stderr.read()
+
+    return output + error
 ```
 
 ### Dependencies
@@ -36,16 +56,23 @@ def __main__(event, lambda_context):
 (into your script virtualenv)
 
 ```shell
-pip3 install gitpython 
+pip3 install gitpython black 
 ```
 
 ### Archive
+
+Ensure `black` can be accessed from your archive root directory.
+
+```sh
+cp YOUR_VIRTUAL_ENV/bin/black .
+```
 
 Create a ZIP archive and upload it to the Lambda.
 
 ```sh
 zip -r9 lambda.zip YOUR_VIRTUAL_ENV/lib/python3.7/site-packages/* && 
-zip -g lambda.zip main.py
+zip -g lambda.zip main.py &&
+zip -g lambda.zip black
 ```
 
 ### Environment variables
@@ -60,11 +87,27 @@ This token can be generated for one of your Gitlab user.
 
 (ensure `awscli` is callable by configuring $PATH and your IAM user has enough privileges to run serverless functions)
 
-```sh
-#!/bin/bash
-aws lambda invoke
-    --function-name arn:aws:lambda:eu-west-3:YOUR_ACCOUNT_ID:function:YOUR_LAMBDA_NAME output
-    --payload '["echo \"Hello world\"", "black ."]'
+```python
+import os
+import sys
+import boto3
+import json
+import base64
+
+with open(sys.argv[1]) as file:
+    command = file.read()
+
+payload = json.dumps(command)
+
+client = boto3.client('lambda')
+response = client.invoke(
+    FunctionName='arn:aws:lambda:eu-west-3:538175400773:function:test',
+    Payload=payload,
+    LogType='Tail'
+)
+
+result = response['Payload'].read().decode('utf-8')
+print(result)
 ```
 
 ### Start runner command
@@ -77,7 +120,7 @@ sudo gitlab-runner register \
     --url https://gitlab.your-domain.com/ \
     --registration-token YOUR_TOKEN \
     --executor custom \
-    --custom-run-exec=/home/ubuntu/executors/run-script.sh \
-    --builds-dir=/builds \
-    --cache-dir=/cache
+    --custom-run-exec=/home/ubuntu/executors/run-script.py \
+    --builds-dir=/tmp/builds \
+    --cache-dir=/tmp/cache
 ```
