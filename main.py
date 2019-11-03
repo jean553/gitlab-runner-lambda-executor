@@ -5,6 +5,7 @@ import sys
 import json
 import subprocess
 import stat
+import shutil
 
 from git import Repo
 
@@ -39,5 +40,8 @@ def __main__(
     )
     output = proc.stdout.read()
     error = proc.stderr.read()
+
+    shutil.rmtree("/tmp/builds")
+    shutil.rmtree("/tmp/cache")
 
     return output + error
