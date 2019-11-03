@@ -58,6 +58,12 @@ Install them into your local virtual env with:
 pip3 install -r requirements.txt
 ```
 
+You can call dependencies executable script from your Gitlab-CI yaml this way:
+
+```yaml
+ - python /var/task/dependency-script.py .
+```
+
 ### Archive the lambda
 
 Create an archive of the lambda:
@@ -65,7 +71,9 @@ Create an archive of the lambda:
 ```sh
 cd venv/lib/python3.7/site-packages && \
     zip -r9 ../../../../lambda.zip . && \
-    cd ../../../../ && \
+    cd ../../../../ && cd venv/bin/ && \
+    zip -r9 ../../lambda.zip . && \
+    cd ../../ && \
     zip -g lambda.zip main.py
 ```
 
