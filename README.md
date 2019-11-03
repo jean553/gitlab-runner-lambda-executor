@@ -10,14 +10,6 @@ The following documentation has been tested with **Python version 3.7** for both
 
 The commands have to be executed into your own copy of this project.
 
-### Requirements
-
-Install `virtualenv`:
-
-```sh
-pip3 install virtualenv
-```
-
 ### Lambda configuration
 
 Create a new Python3.7 lambda function from the AWS console.
@@ -37,7 +29,7 @@ Set the lambda main handler as **main.__main__**.
 Create a local virtual env to store all your Lambda dependencies.
 
 ```sh
-virtualenv venv
+python3 -m venv .
 ```
 
 Enable it.
@@ -69,11 +61,9 @@ You can call dependencies executable script from your Gitlab-CI yaml this way:
 Create an archive of the lambda:
 
 ```sh
-cd venv/lib/python3.7/site-packages && \
-    zip -r9 ../../../../lambda.zip . && \
-    cd ../../../../ && cd venv/bin/ && \
-    zip -r9 ../../lambda.zip . && \
-    cd ../../ && \
+cd lib/python3.7/site-packages && \
+    zip -r9 ../../../lambda.zip . && \
+    cd ../../../ && \
     zip -g lambda.zip main.py
 ```
 
