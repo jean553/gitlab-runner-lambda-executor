@@ -21,8 +21,12 @@ def __main__(
         "https://oauth2:"
         + os.environ["ACCESS_TOKEN"]
         + "@"
-        + os.environ["GITLAB_REPOSITORY_URL"],
+        + os.environ["GITLAB_URL"]
+        + "/"
+        + event["ci_project_path"]
+        + ".git",
         "/tmp/builds/root/test",
+        branch=event["ci_commit_ref_name"]
     )
 
     script = open("/tmp/script.sh", "w")

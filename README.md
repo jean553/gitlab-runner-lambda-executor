@@ -19,7 +19,7 @@ Choose the option of creating a new role for your function from policy templates
 In order to use Git, add a [Git layer](https://github.com/lambci/git-lambda-layer) to your lambda.
 
 Set the following environment variables for the lambda function:
- * `GITLAB_REPOSITORY_URL` with your Gitlab repository URL (for instance: `gitlab.your-domain.com/user/project.git`),
+ * `GITLAB_URL` with your Gitlab URL (for instance: `gitlab.your-domain.com`),
  * `ACCESS_TOKEN` with your Gitlab access token (**Access token** into Gitlab user settings)
 
 Set the lambda main handler as **main.__main__**.
