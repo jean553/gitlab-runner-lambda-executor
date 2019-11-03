@@ -26,7 +26,7 @@ def __main__(
     )
 
     script = open("/tmp/script.sh", "w")
-    script.write(event)
+    script.write(event["command"])
     script.close()
 
     st = os.stat("/tmp/script.sh")
@@ -36,12 +36,12 @@ def __main__(
         "/tmp/script.sh",
         shell=True,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        stderr=subprocess.STDOUT
     )
-    output = proc.stdout.read()
-    error = proc.stderr.read()
+
+    (stdout, _) = proc.communicate()
 
     shutil.rmtree("/tmp/builds")
     shutil.rmtree("/tmp/cache")
 
-    return output + error
+    return {"return_code": proc.returncode, "output": stdout.decode("utf-8")}
