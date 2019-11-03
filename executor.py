@@ -14,6 +14,7 @@ def main():
     payload = json.dumps({
         "command": command,
         "ci_project_path": os.environ["CI_PROJECT_PATH"],
+        "ci_commit_ref_name": os.environ["CI_COMMIT_REF_NAME"],
     })
 
     client = boto3.client('lambda')
