@@ -29,8 +29,7 @@ In order to use Git, add a [Git layer](https://github.com/lambci/git-lambda-laye
 Set the following environment variables for the lambda function:
  * `GITLAB_REPOSITORY_URL` with your Gitlab repository URL (for instance: `gitlab.your-domain.com/user/project.git`),
  * `ACCESS_TOKEN` with your Gitlab access token (**Access token** into Gitlab user settings),
- * `GIT_PYTHON_REFRESH` to `quiet`,
- * `GIT_SSL_NO_VERIFY` to `true`
+ * `GIT_PYTHON_REFRESH` to `quiet`
 
 Set the lambda main handler as **main.__main__**.
 
