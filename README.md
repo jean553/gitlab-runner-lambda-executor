@@ -22,7 +22,7 @@ Set the following environment variables for the lambda function:
  * `GITLAB_URL` with your Gitlab URL (for instance: `gitlab.your-domain.com`),
  * `ACCESS_TOKEN` with your Gitlab access token (**Access token** into Gitlab user settings)
 
-Set the lambda main handler as **main.__main__**.
+Set the lambda main handler as `main.__main__`.
 
 ### Make the Python virtual environment
 
@@ -35,7 +35,7 @@ python3 -m venv .
 Enable it.
 
 ```sh
-source venv/bin/activate
+source bin/activate
 ```
 
 ### Install the lambda dependencies
