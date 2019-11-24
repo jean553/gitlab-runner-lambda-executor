@@ -1,6 +1,5 @@
 import os
 import stat
-import git
 import sys
 import json
 import subprocess
